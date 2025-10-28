@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'crm',
     'graphene_django',
     'django_filters',
+    'django_crontab',
 ]
 
 MIDDLEWARE = [
@@ -128,3 +129,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 GRAPHENE = {
     "SCHEMA": "alx_backend_graphql_crm.schema.schema"
 }
+# alx_backend_graphql_crm/alx_backend_graphql_crm/settings.py
+
+# ... (at the very bottom of the file)
+
+# Configuration for django-crontab (Task 2)
+CRONJOBS = [
+    # Schedule: Run every 5 minutes
+    ('*/5 * * * *', 'crm.cron.log_crm_heartbeat'),
+]
