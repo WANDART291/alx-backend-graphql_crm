@@ -121,3 +121,6 @@ GRAPHENE = {
 CRON_CLASSES = [
     "crm.cron.HeartbeatCronJob",  # ✅ Heartbeat logging job
 ]
+CRONJOBS = [
+    ('*/5 * * * *', 'crm.cron.log_crm_heartbeat'),
+]
