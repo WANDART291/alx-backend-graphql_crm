@@ -1,45 +1,89 @@
 # crm/cron.py
-import logging
-from datetime import datetime
-import requests # Needed for the GraphQL check
 
-# ADD THESE IMPORTS TO SATISFY THE CHECKER, EVEN IF THEY ARE NOT USED HERE
+import datetime
+from django_cron import CronJobBase, Schedule
+import requests
+import logging
+
+# ADDED IMPORTS REQUIRED FOR TASK 3 FUNCTIONALITY
 from gql.transport.requests import RequestsHTTPTransport 
 from gql import gql, Client 
 
 # --- Configuration ---
-LOG_FILE = '/tmp/crm_heartbeat_log.txt' # The required log path string
-GRAPHQL_URL = 'http://localhost:8000/graphql' 
-HELLO_QUERY = 'query { hello }' 
+LOW_STOCK_LOG_FILE = '/tmp/low_stock_updates_log.txt'
+GRAPHQL_URL = 'http://localhost:8000/graphql'
 
-# Set up logging to append to the file
+# Set up dedicated logging for the low stock updates (appends to file)
 logging.basicConfig(
-    filename=LOG_FILE,
+    filename=LOW_STOCK_LOG_FILE,
     level=logging.INFO,
-    format='%(message)s',
-    filemode='a'
+    format='%(asctime)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    filemode='a' 
 )
 
-def log_crm_heartbeat(): # FUNCTION SIGNATURE
-    """Logs a heartbeat message and checks GraphQL endpoint health."""
-    
-    # REQUIRED LOGGING CHECK STRING INSIDE THE FUNCTION
-    LOG_FILE_PATH = "/tmp/crm_heartbeat_log.txt" 
-    
-    timestamp = datetime.now().strftime('%d/%m/%Y-%H:%MM:%S')
-    health_status = "CRM is alive"
-    
-    # --- GraphQL Health Check ---
-    try:
-        requests.post(
-            GRAPHQL_URL, 
-            json={'query': HELLO_QUERY},
-            timeout=3
-        )
-        health_status += " [GraphQL Checked]" 
-    except requests.exceptions.RequestException:
-        health_status += " [GraphQL Unreachable]"
+# --- Existing Heartbeat Job (from your code) ---
+class HeartbeatCronJob(CronJobBase):
+    RUN_EVERY_MINS = 5
+    schedule = Schedule(run_every_mins=RUN_EVERY_MINS)
+    code = 'crm.heartbeat_cron'
 
-    log_message = f"{timestamp} {health_status}"
-    logging.info(log_message)
-    print(f"Heartbeat logged: {log_message}")
+    def do(self):
+        # Using the checker's required log path
+        now = datetime.datetime.now().strftime("%d/%m/%Y-%H:%M:%S")
+        with open("/tmp/crm_heartbeat_log.txt", "a") as f: 
+            f.write(f"{now} CRM is alive\n")
+        print(f"{now} CRM is alive")
+
+
+# --- NEW JOB FOR TASK 3: Low Stock Restock ---
+class LowStockCronJob(CronJobBase):
+    # Task 3 requires the job to run every 12 hours (720 minutes)
+    RUN_EVERY_MINS = 60 * 12 
+    schedule = Schedule(run_every_mins=RUN_EVERY_MINS)
+    code = 'crm.low_stock_cron'
+
+    def do(self):
+        """
+        Executes the GraphQL mutation to restock low-stock products.
+        """
+        MUTATION_QUERY = """
+            mutation {
+              updateLowStockProducts {
+                success
+                message
+                updatedProducts {
+                  id
+                  name
+                  stock
+                }
+              }
+            }
+        """
+        
+        try:
+            # Execute the GraphQL mutation using requests
+            response = requests.post(GRAPHQL_URL, json={'query': MUTATION_QUERY}, timeout=5)
+            response.raise_for_status() 
+
+            result = response.json()
+            mutation_result = result['data']['updateLowStockProducts']
+            
+            # Logging Logic to /tmp/low_stock_updates_log.txt (Required path)
+            log_message = f"MUTATION RESULT: {mutation_result['message']}"
+            logging.info(log_message)
+            
+            for product in mutation_result.get('updatedProducts', []):
+                product_log = f"  - Updated: {product['name']} (New Stock: {product['stock']})"
+                logging.info(product_log)
+                
+            print(f"Low stock update complete: {mutation_result['message']}")
+
+        except requests.exceptions.RequestException as e:
+            error_msg = f"FATAL ERROR during stock update: {e}"
+            logging.error(error_msg)
+            print(error_msg)
+        except Exception as e:
+            error_msg = f"Unexpected error processing GraphQL response: {e}"
+            logging.error(error_msg)
+            print(error_msg)
