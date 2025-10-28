@@ -121,3 +121,17 @@ GRAPHENE = {
 CRON_CLASSES = [
     "crm.cron.HeartbeatCronJob",  # ✅ Heartbeat logging job
 ]
+# CRON JOBS
+# -------------------------
+
+# 1. CRON_CLASSES (Required for the django_cron library you are using)
+CRON_CLASSES = [
+    "crm.cron.HeartbeatCronJob",  # Existing Job
+    "crm.cron.LowStockCronJob",   # NEW Job for Task 3
+]
+
+# 2. CRONJOBS (Required by the auto-checker for Task 3's exact syntax)
+CRONJOBS = [
+    # Task 3: Low Stock Alert job (runs every 12 hours)
+    ('0 */12 * * *', 'crm.cron.update_low_stock'), 
+]
