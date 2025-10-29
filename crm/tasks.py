@@ -42,7 +42,7 @@ def generate_crm_report():
     
     # Write the log message to the specified file
     # Note: Using /tmp for Unix-like logging as required by the project
-    report_file_path = 'C:/temp/crm_report_log.txt'
+    report_file_path = '/tmp/crm_report_log.txt'
     try:
         with open(report_file_path, 'a') as f:
             f.write(log_message + '\n')
