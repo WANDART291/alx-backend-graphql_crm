@@ -11,9 +11,10 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 # -------------------------
-# INSTALLED APPS
+# INSTALLED APPS (Unified and Cleaned)
 # -------------------------
 INSTALLED_APPS = [
+    # Django Default Apps
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -21,17 +22,17 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     
-    # Task Scheduler Apps (Keep only the compatible ones)
-    'django_crontab', 
-    'django_celery_beat', # REQUIRED for Task 4
-    
-    # Your apps
+    # Project Apps
     'crm',
     'graphene_django',
+    
+    # Task Scheduler Apps
+    'django_crontab', 
+    'django_celery_beat', 
 ]
 
 # -------------------------
-# MIDDLEWARE & URLS (REMAINS THE SAME)
+# MIDDLEWARE & URLS
 # -------------------------
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -46,7 +47,7 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'crm.urls'
 
 # -------------------------
-# TEMPLATES, DATABASE, PASSWORDS (REMAINS THE SAME)
+# TEMPLATES, DATABASE, PASSWORDS (Standard Configuration)
 # -------------------------
 TEMPLATES = [
     {
@@ -89,7 +90,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # -------------------------
-# INTERNATIONALIZATION & STATICS (REMAINS THE SAME)
+# INTERNATIONALIZATION & STATICS
 # -------------------------
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
@@ -99,7 +100,7 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # -------------------------
-# GRAPHQL (REMAINS THE SAME)
+# GRAPHQL
 # -------------------------
 GRAPHENE = {
     "SCHEMA": "crm.schema.schema",
@@ -110,13 +111,15 @@ GRAPHENE = {
 # ---------------------------------------------
 
 # 1. django-crontab Configuration (from Task 3)
+# Note: Duplicate CRONJOBS blocks are consolidated here.
 CRONJOBS = [
     ('0 */12 * * *', 'crm.cron.update_low_stock'), 
+    ('*/5 * * * *', 'crm.cron.log_crm_heartbeat'),
 ]
 
-# 2. ✅ CELERY CONFIGURATION (FINAL WORKING CONFIG: FILESYSTEM BROKER)
-# Note: CELERY_RESULT_BACKEND is intentionally omitted to prevent the RuntimeError
-CELERY_BROKER_URL = 'filesystem://' # Uses local file system as the queue
+# 2. ✅ CELERY CONFIGURATION (Final Working Filesystem Broker)
+# Note: CELERY_RESULT_BACKEND is omitted to prevent the RuntimeError.
+CELERY_BROKER_URL = 'filesystem://' 
 CELERY_BROKER_TRANSPORT_OPTIONS = {
     'data_folder_in': 'celery_queue/in',  
     'data_folder_out': 'celery_queue/out', 
@@ -127,7 +130,7 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC' 
 
-# 3. CELERY BEAT SCHEDULE (REQUIRED FOR TASK 4)
+# 3. CELERY BEAT SCHEDULE (Required for Task 4)
 CELERY_BEAT_SCHEDULE = {
     'generate-crm-report-weekly': {
         'task': 'crm.tasks.generate_crm_report',
@@ -135,3 +138,10 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(day_of_week='mon', hour=6, minute=0),
     },
 }
+
+# 4. django-cron Configuration (Deprecated/Removed, but define the classes if needed elsewhere)
+# CRON_CLASSES is kept simple and should align with your codebase.
+CRON_CLASSES = [
+    "crm.cron.HeartbeatCronJob", 
+    "crm.cron.LowStockCronJob", 
+]
