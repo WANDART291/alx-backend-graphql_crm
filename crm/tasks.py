@@ -3,7 +3,6 @@ import datetime
 import requests 
 import json
 import logging
-import datetime
 from celery import shared_task
 
 logger = logging.getLogger(__name__)
