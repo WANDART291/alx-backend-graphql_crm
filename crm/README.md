@@ -1,62 +1,46 @@
-🚀 Task 4: Celery Beat Setup for Weekly CRM Report
-This guide details the setup and verification of the Celery task responsible for generating the weekly CRM report.
+## 🚀 Task 4: Celery Beat Setup for Weekly CRM Report
 
-Objective: Schedule crm.tasks.generate_crm_report to run every Monday at 6:00 AM.
+This guide details the setup and verification of the Celery task responsible for generating the **weekly CRM report**.
 
-⚙️ I. Configuration and Environment Setup
-This configuration uses the stable Filesystem (FS) Broker to avoid external dependencies (like Redis/RabbitMQ) for local development.
+**Objective:** Schedule crm.tasks.generate_crm_report to run every Monday at 6:00 AM.
 
-Prepare Environment & Install Packages
+---
 
-Bash
+### ⚙️ I. Configuration and Environment Setup
 
-source venv/Scripts/activate
-pip install -r requirements.txt
-Create Broker and Log Directories
+This configuration uses the stable **Filesystem (FS) Broker** to avoid external dependencies (like Redis/RabbitMQ) for local development.
 
-Bash
+1.  **Prepare Environment & Install Packages**
 
-# Directories for the Filesystem Broker queue
-mkdir -p celery_queue/in celery_queue/out celery_queue/processed
+    ```bash
+    source venv/Scripts/activate
+    pip install -r requirements.txt
+    ```
 
-# Directory for the task log (Maps to C:\temp on Windows Git Bash)
-mkdir -p /c/temp 
-Run Migrations
+2.  **Create Broker and Log Directories**
 
-Bash
+    ```bash
+    # Directories for the Filesystem Broker queue
+    mkdir -p celery_queue/in celery_queue/out celery_queue/processed
 
-python manage.py migrate
-💻 II. Running the Celery Services
-You must run the Worker and Beat Scheduler concurrently in separate terminals (Git Bash, with (venv) active).
+    # Directory for the task log (Maps to C:\temp on Windows Git Bash)
+    mkdir -p /c/temp 
+    ```
 
-1. Start the Celery Worker (Terminal 1) 🧑‍💻
-The Worker executes the tasks. Keep this terminal running.
+3.  **Run Migrations**
 
-Bash
+    ```bash
+    python manage.py migrate
+    ```
 
+---
+
+### 💻 II. Running the Celery Services
+
+You must run the **Worker** and **Beat Scheduler** concurrently in separate terminals (Git Bash, with (venv) active).
+
+#### 1. Start the Celery Worker (Terminal 1) 🧑‍💻
+The **Worker** executes the tasks. Keep this terminal running.
+
+```bash
 python -m celery -A crm worker -l info
-2. Start Celery Beat Scheduler (Terminal 2) ⏰
-The Beat Scheduler handles the timing and placement of the recurring task onto the queue.
-
-Bash
-
-python -m celery -A crm beat -l info
-✅ III. Verification and Project Completion
-1. Trigger the Task Manually
-Open a third terminal and execute the function directly for immediate log generation.
-
-Bash
-
-python manage.py shell
->>> from crm.tasks import generate_crm_report
->>> result = generate_crm_report()
->>> exit()
-2. Verify Final Log Output
-Check the contents of the final log file to confirm successful task execution.
-
-Bash
-
-cat /c/temp/crm_report_log.txt
-Expected Output (Successful Verification): The file must contain a line in the correct format:
-
-YYYY-MM-DD HH:MM:SS - Report: X customers, Y orders, Z revenue
